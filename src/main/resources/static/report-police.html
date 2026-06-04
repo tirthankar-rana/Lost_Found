@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Police Report - LostFound</title>
+    <link rel="stylesheet" href="/app.css">
+</head>
+<body>
+<div class="navbar">
+    <div class="container">
+        <strong>LostFound</strong>
+        <div>
+            <span id="welcomeText">Not logged in</span>
+            <span id="navGuest">
+                <a href="/register.html">Create Account</a>
+                <a href="/login.html">Login</a>
+            </span>
+            <span id="navUser" style="display:none;">
+                <a href="#" onclick="logoutLF()">Logout</a>
+            </span>
+            <a href="/">Home</a><a href="/items.html">Browse</a><a href="/my-items.html">My Items</a>
+        </div>
+    </div>
+</div>
+
+<div class="container">
+    <div class="card" style="max-width:780px;margin:0 auto;">
+        <h2>Police Complaint Draft</h2>
+        <p>Fill details and generate a complaint draft. You can copy and submit to your nearest police station portal.</p>
+        <form id="reportForm">
+            <label>Full Name <input name="fullName" required></label>
+            <label>Phone <input name="phone" required></label>
+            <label>City / Police Station <input name="city" required></label>
+            <label>Item Name <input name="itemTitle" required></label>
+            <label>Incident Date <input type="date" name="incidentDate" required></label>
+            <label>Incident Location <input name="location" required></label>
+            <label>Detailed Description <textarea name="details" required></textarea></label>
+            <button type="submit">Generate Report Draft</button>
+        </form>
+        <div class="msg" id="msg">No report generated yet.</div>
+        <button class="secondary" id="copyBtn" type="button">Copy Report Text</button>
+    </div>
+</div>
+
+<script>
+    const form = document.getElementById('reportForm');
+    const msg = document.getElementById('msg');
+    const copyBtn = document.getElementById('copyBtn');
+    let reportText = '';
+
+    form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        msg.textContent = 'Generating report...';
+        const payload = Object.fromEntries(new FormData(form).entries());
+
+        const res = await fetch('/api/police-reports', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+        const data = await res.json();
+
+        if (!res.ok) {
+            msg.textContent = data.error || 'Unable to generate report';
+            return;
+        }
+
+        reportText = data.reportText || '';
+        msg.textContent = `${data.message}\n\n${reportText}`;
+    });
+
+    copyBtn.addEventListener('click', async () => {
+        if (!reportText) {
+            alert('Generate report first');
+            return;
+        }
+        await navigator.clipboard.writeText(reportText);
+        alert('Report copied');
+    });
+</script>
+<script src="/auth-ui.js"></script>
+</body>
+</html>

@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Add Item - Lost & Found</title>
+    <link rel="stylesheet" href="/app.css">
+</head>
+<body>
+<div class="navbar">
+    <div class="container">
+        <strong>LostFound</strong>
+        <div>
+            <span id="welcomeText">Not logged in</span>
+            <span id="navGuest">
+                <a href="/register.html">Create Account</a>
+                <a href="/login.html">Login</a>
+            </span>
+            <span id="navUser" style="display:none;">
+                <a href="#" onclick="logoutLF()">Logout</a>
+            </span>
+            <a href="/">Home</a><a href="/items.html">Browse</a><a href="/my-items.html">My Items</a><a href="/report-police.html">Police Report</a>
+        </div>
+    </div>
+</div>
+<div class="container">
+    <div class="card" style="max-width:700px;margin:0 auto;">
+        <h2>Add Lost / Found Item</h2>
+        <p>Saved user id from login: <strong id="savedUserId">not set</strong></p>
+
+        <form id="itemForm">
+            <label>User ID <input type="number" name="userId" id="userIdInput" required></label>
+            <label>Type
+                <select name="type" required>
+                    <option value="LOST">LOST</option>
+                    <option value="FOUND">FOUND</option>
+                </select>
+            </label>
+            <label>Title <input name="title" required></label>
+            <label>Description <textarea name="description" required></textarea></label>
+            <label>Category <input name="category" required></label>
+            <label>Location <input name="location" required></label>
+            <label>Image URL (optional) <input name="imageUrl" placeholder="https://..."></label>
+            <label>Incident Date <input type="date" name="incidentDate" required></label>
+            <button type="submit" class="success">Post Item</button>
+        </form>
+
+        <div class="msg" id="msg"></div>
+    </div>
+</div>
+
+<script>
+    const savedUserId = localStorage.getItem('lf_userId');
+    const userIdText = document.getElementById('savedUserId');
+    const userIdInput = document.getElementById('userIdInput');
+    const msg = document.getElementById('msg');
+    const form = document.getElementById('itemForm');
+
+    if (savedUserId) {
+        userIdText.textContent = savedUserId;
+        userIdInput.value = savedUserId;
+    }
+
+    form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        msg.textContent = 'Posting item...';
+
+        const formData = new FormData(form);
+        const payload = {
+            userId: Number(formData.get('userId')),
+            type: formData.get('type'),
+            title: formData.get('title'),
+            description: formData.get('description'),
+            category: formData.get('category'),
+            location: formData.get('location'),
+            imageUrl: formData.get('imageUrl'),
+            incidentDate: formData.get('incidentDate')
+        };
+
+        try {
+            const res = await fetch('/api/items', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+            const data = await res.json();
+
+            if (!res.ok) {
+                msg.textContent = `Error: ${data.error || 'Could not create item'}`;
+                return;
+            }
+
+            msg.textContent = `Success: item created with ID ${data.id}`;
+            form.reset();
+            if (savedUserId) {
+                userIdInput.value = savedUserId;
+            }
+        } catch (err) {
+            msg.textContent = 'Error: Could not connect to server';
+        }
+    });
+</script>
+<script src="/auth-ui.js"></script>
+</body>
+</html>

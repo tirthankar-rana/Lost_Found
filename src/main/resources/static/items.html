@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Items - Lost & Found</title>
+    <link rel="stylesheet" href="/app.css">
+</head>
+<body>
+<div class="navbar">
+    <div class="container">
+        <strong>LostFound</strong>
+        <div>
+            <span id="welcomeText">Not logged in</span>
+            <span id="navGuest">
+                <a href="/register.html">Create Account</a>
+                <a href="/login.html">Login</a>
+            </span>
+            <span id="navUser" style="display:none;">
+                <a href="#" onclick="logoutLF()">Logout</a>
+            </span>
+            <a href="/">Home</a><a href="/add-item.html">Add Item</a><a href="/my-items.html">My Items</a><a href="/report-police.html">Police Report</a>
+        </div>
+    </div>
+</div>
+<div class="container">
+    <div class="card">
+        <h2>Open Lost / Found Items</h2>
+        <div class="stats">
+            <span class="chip">Filter by type and location</span>
+            <span class="chip">Contact details included</span>
+        </div>
+        <div style="display:flex;gap:10px;align-items:end;flex-wrap:wrap;margin-top:10px;">
+            <label>Type
+                <select id="type">
+                    <option value="">All</option>
+                    <option value="LOST">LOST</option>
+                    <option value="FOUND">FOUND</option>
+                </select>
+            </label>
+            <label>Location
+                <input id="location" placeholder="e.g. Kolkata">
+            </label>
+            <button id="searchBtn">Search</button>
+        </div>
+        <div id="list">Loading...</div>
+    </div>
+</div>
+
+<script>
+    const fallback = 'https://images.unsplash.com/photo-1542291026-7eec264c27ff?auto=format&fit=crop&w=1200&q=80';
+    const list = document.getElementById('list');
+    const typeEl = document.getElementById('type');
+    const locationEl = document.getElementById('location');
+
+    function getUrl() {
+        const params = new URLSearchParams();
+        if (typeEl.value) params.append('type', typeEl.value);
+        if (locationEl.value.trim()) params.append('location', locationEl.value.trim());
+        const query = params.toString();
+        return query ? `/api/items?${query}` : '/api/items';
+    }
+
+    function render(items) {
+        if (!items.length) {
+            list.innerHTML = '<p>No items found.</p>';
+            return;
+        }
+        list.innerHTML = items.map(item => `
+            <div class="item">
+                <img src="${item.imageUrl || fallback}" alt="item image">
+                <div>
+                    <span class="badge ${item.status === 'RESOLVED' ? 'resolved' : (item.type === 'LOST' ? 'lost' : 'found')}">${item.type}</span>
+                    <strong> ${item.title}</strong>
+                </div>
+                <p>${item.description}</p>
+                <div style="font-size:14px;color:#475569;">
+                    Category: ${item.category} | Location: ${item.location} | Date: ${item.incidentDate}<br>
+                    Posted by: ${item.userName} (${item.userPhone}) | Status: ${item.status}
+                </div>
+            </div>
+        `).join('');
+    }
+
+    async function loadItems() {
+        list.textContent = 'Loading...';
+        try {
+            const res = await fetch(getUrl());
+            const data = await res.json();
+            render(data);
+        } catch (e) {
+            list.textContent = 'Could not load items';
+        }
+    }
+
+    document.getElementById('searchBtn').addEventListener('click', loadItems);
+    loadItems();
+</script>
+<script src="/auth-ui.js"></script>
+</body>
+</html>

@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Items - LostFound</title>
+    <link rel="stylesheet" href="/app.css">
+</head>
+<body>
+<div class="navbar">
+    <div class="container">
+        <strong>LostFound</strong>
+        <div>
+            <span id="welcomeText">Not logged in</span>
+            <span id="navGuest">
+                <a href="/register.html">Create Account</a>
+                <a href="/login.html">Login</a>
+            </span>
+            <span id="navUser" style="display:none;">
+                <a href="#" onclick="logoutLF()">Logout</a>
+            </span>
+            <a href="/">Home</a><a href="/add-item.html">Add Item</a><a href="/items.html">Browse</a><a href="/report-police.html">Police Report</a>
+        </div>
+    </div>
+</div>
+
+<div class="container">
+    <div class="card">
+        <h2>My Posted Items</h2>
+        <p>Use your user id to load and resolve your own entries.</p>
+        <div style="display:flex;gap:10px;align-items:end;flex-wrap:wrap;">
+            <label>User ID
+                <input id="userId" type="number" placeholder="Enter your user id">
+            </label>
+            <button id="loadBtn">Load My Items</button>
+        </div>
+        <div id="list" style="margin-top:10px;">No items loaded.</div>
+    </div>
+</div>
+
+<script>
+    const fallback = 'https://images.unsplash.com/photo-1542291026-7eec264c27ff?auto=format&fit=crop&w=1200&q=80';
+    const userIdInput = document.getElementById('userId');
+    const list = document.getElementById('list');
+    const savedUserId = localStorage.getItem('lf_userId');
+    if (savedUserId) userIdInput.value = savedUserId;
+
+    async function resolveItem(itemId, userId) {
+        const res = await fetch(`/api/items/${itemId}/resolve?userId=${userId}`, { method: 'PUT' });
+        const data = await res.json();
+        if (!res.ok) {
+            alert(data.error || 'Could not resolve item');
+            return;
+        }
+        await loadMyItems();
+    }
+
+    function render(items, userId) {
+        if (!items.length) {
+            list.innerHTML = '<p>No items found for this user.</p>';
+            return;
+        }
+
+        list.innerHTML = items.map(item => `
+            <div class="item">
+                <img src="${item.imageUrl || fallback}" alt="item image">
+                <div>
+                    <span class="badge ${item.type === 'LOST' ? 'lost' : 'found'}">${item.type}</span>
+                    <strong>${item.title}</strong>
+                </div>
+                <p>${item.description}</p>
+                <div style="font-size:14px;color:#475569;">
+                    ${item.category} | ${item.location} | ${item.incidentDate} | Status: ${item.status}
+                </div>
+                ${item.status === 'OPEN'
+                    ? `<button class="secondary" onclick="resolveItem(${item.id}, ${userId})">Mark Resolved</button>`
+                    : '<span class="chip">Resolved</span>'
+                }
+            </div>
+        `).join('');
+    }
+
+    async function loadMyItems() {
+        const userId = userIdInput.value.trim();
+        if (!userId) {
+            list.textContent = 'Please enter user id.';
+            return;
+        }
+        list.textContent = 'Loading...';
+        const res = await fetch(`/api/items/user/${userId}`);
+        const data = await res.json();
+        render(data, userId);
+    }
+
+    document.getElementById('loadBtn').addEventListener('click', loadMyItems);
+    window.resolveItem = resolveItem;
+</script>
+<script src="/auth-ui.js"></script>
+</body>
+</html>

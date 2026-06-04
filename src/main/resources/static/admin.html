@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Panel - LostFound</title>
+    <link rel="stylesheet" href="/app.css">
+</head>
+<body>
+<div class="navbar">
+    <div class="container">
+        <strong>LostFound Admin</strong>
+        <div>
+            <a href="/">Home</a>
+            <a href="/items.html">Browse</a>
+            <a href="/my-items.html">My Items</a>
+        </div>
+    </div>
+</div>
+
+<div class="container">
+    <div class="card">
+        <h2>Admin Dashboard</h2>
+        <p>Generate duplicate demo entries for better UI testing and review.</p>
+        <div style="display:flex;gap:10px;align-items:end;flex-wrap:wrap;">
+            <label>How many duplicates?
+                <input id="dupCount" type="number" min="1" max="200" value="24">
+            </label>
+            <button id="generateBtn">Generate Duplicates</button>
+            <button class="secondary" id="refreshBtn">Refresh Summary</button>
+        </div>
+        <div class="msg" id="msg">No action yet.</div>
+    </div>
+
+    <div class="grid" style="margin-top:14px;" id="summaryGrid">
+        <div class="card"><h3>Total Users</h3><p id="totalUsers">-</p></div>
+        <div class="card"><h3>Total Items</h3><p id="totalItems">-</p></div>
+        <div class="card"><h3>Open Items</h3><p id="openItems">-</p></div>
+        <div class="card"><h3>Resolved</h3><p id="resolvedItems">-</p></div>
+        <div class="card"><h3>Lost</h3><p id="lostItems">-</p></div>
+        <div class="card"><h3>Found</h3><p id="foundItems">-</p></div>
+    </div>
+</div>
+
+<script>
+    const msg = document.getElementById('msg');
+
+    async function refreshSummary() {
+        const res = await fetch('/api/admin/summary');
+        const data = await res.json();
+        document.getElementById('totalUsers').textContent = data.totalUsers ?? '-';
+        document.getElementById('totalItems').textContent = data.totalItems ?? '-';
+        document.getElementById('openItems').textContent = data.openItems ?? '-';
+        document.getElementById('resolvedItems').textContent = data.resolvedItems ?? '-';
+        document.getElementById('lostItems').textContent = data.lostItems ?? '-';
+        document.getElementById('foundItems').textContent = data.foundItems ?? '-';
+    }
+
+    document.getElementById('generateBtn').addEventListener('click', async () => {
+        const count = Number(document.getElementById('dupCount').value || 24);
+        msg.textContent = 'Generating duplicate items...';
+        const res = await fetch(`/api/admin/generate-duplicate-items?count=${count}`, { method: 'POST' });
+        const data = await res.json();
+        if (!res.ok) {
+            msg.textContent = data.error || 'Generation failed';
+            return;
+        }
+        msg.textContent = `${data.message}. Added: ${data.count}`;
+        await refreshSummary();
+    });
+
+    document.getElementById('refreshBtn').addEventListener('click', refreshSummary);
+    refreshSummary();
+</script>
+</body>
+</html>

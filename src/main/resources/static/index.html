@@ -1,0 +1,146 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LostFound Dashboard</title>
+    <link rel="stylesheet" href="/app.css">
+</head>
+<body>
+<div class="navbar">
+    <div class="container">
+        <strong>LostFound</strong>
+        <div>
+            <span id="welcomeText">Not logged in</span>
+            <span id="navGuest">
+                <a href="/register.html">Create Account</a>
+                <a href="/login.html">Login</a>
+            </span>
+            <span id="navUser" style="display:none;">
+                <a href="#" onclick="logoutLF()">Logout</a>
+            </span>
+            <a href="/add-item.html">Add Item</a>
+            <a href="/items.html">Browse</a>
+            <a href="/my-items.html">My Items</a>
+            <a href="/report-police.html">Police Report</a>
+            <a href="/admin.html">Admin</a>
+        </div>
+    </div>
+</div>
+
+<div class="container">
+    <section class="hero">
+        <div class="hero-top">
+            <div>
+                <small>Trusted Campus + City Lost & Found</small>
+                <h1>FIND WHAT MATTERS</h1>
+                <p>Professional lost-and-found portal with image-first browsing, quick contact, and fast reporting workflow.</p>
+                <div class="actions">
+                    <a href="/items.html"><button>Explore Items</button></a>
+                    <a href="/add-item.html"><button class="secondary">Post Item</button></a>
+                    <a href="/admin.html"><button class="secondary">Admin Panel</button></a>
+                </div>
+                <div class="search-wrap">
+                    <span class="icon">🔍</span>
+                    <input id="homeSearch" placeholder="Search lost items by location (e.g. Kolkata)">
+                </div>
+            </div>
+            <div class="feature-panel">
+                <h3>Quick Actions</h3>
+                <p><a href="/report-police.html" style="color:#fff;">File police report draft</a></p>
+                <p><a href="/my-items.html" style="color:#fff;">Manage my entries</a></p>
+                <p><a href="/login.html" style="color:#fff;">Login to save your profile</a></p>
+                <div class="hero-showcase" style="margin-top:8px;">
+                    <div class="show-card" style="background-image:url('https://images.unsplash.com/photo-1523275335684-37898b6baf30?auto=format&fit=crop&w=1000&q=80');"><span>Watch</span></div>
+                    <div class="show-card" style="background-image:url('https://images.unsplash.com/photo-1546868871-7041f2a55e12?auto=format&fit=crop&w=1000&q=80');"><span>Phone</span></div>
+                    <div class="show-card" style="background-image:url('https://images.unsplash.com/photo-1572569511254-d8f925fe2cbb?auto=format&fit=crop&w=1000&q=80');"><span>Bag</span></div>
+                    <div class="show-card" style="background-image:url('https://images.unsplash.com/photo-1553062407-98eeb64c6a62?auto=format&fit=crop&w=1000&q=80');"><span>Documents</span></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="kpi-grid">
+            <div class="kpi"><span>Total Visible</span><strong id="kpiTotal">0</strong></div>
+            <div class="kpi"><span>Locations</span><strong id="kpiLocations">0</strong></div>
+            <div class="kpi"><span>With Images</span><strong id="kpiWithImages">0</strong></div>
+            <div class="kpi"><span>Open Cases</span><strong id="kpiOpen">0</strong></div>
+        </div>
+    </section>
+
+    <div class="card" style="margin-top:16px;">
+        <h2>Latest Lost Items</h2>
+        <p>Home page automatically shows all open LOST reports.</p>
+        <div id="lostList">Loading...</div>
+    </div>
+
+    <div class="grid" style="margin-top:16px;">
+        <div class="card">
+            <h3>Optional Item Images</h3>
+            <p>Users can add an image URL while posting. If no image, default preview appears.</p>
+        </div>
+        <div class="card">
+            <h3>Direct Police Draft</h3>
+            <p>Generate complaint text in one click and copy for submission.</p>
+        </div>
+        <div class="card">
+            <h3>Cleaner Auth UX</h3>
+            <p>Login/Create Account auto-hide once user is logged in.</p>
+        </div>
+    </div>
+</div>
+
+<script src="/auth-ui.js"></script>
+<script>
+    const lostList = document.getElementById('lostList');
+    const homeSearch = document.getElementById('homeSearch');
+    const fallback = 'https://images.unsplash.com/photo-1542291026-7eec264c27ff?auto=format&fit=crop&w=1200&q=80';
+
+    function render(items) {
+        if (!items.length) {
+            lostList.innerHTML = '<p>No lost items found.</p>';
+            document.getElementById('kpiTotal').textContent = '0';
+            document.getElementById('kpiLocations').textContent = '0';
+            document.getElementById('kpiWithImages').textContent = '0';
+            document.getElementById('kpiOpen').textContent = '0';
+            return;
+        }
+
+        const locations = new Set(items.map(i => i.location));
+        const withImages = items.filter(i => i.imageUrl).length;
+        document.getElementById('kpiTotal').textContent = String(items.length);
+        document.getElementById('kpiLocations').textContent = String(locations.size);
+        document.getElementById('kpiWithImages').textContent = String(withImages);
+        document.getElementById('kpiOpen').textContent = String(items.length);
+
+        lostList.innerHTML = `<div class="item-grid">${items.map(item => `
+            <div class="item-card">
+                <img src="${item.imageUrl || fallback}" alt="item image">
+                <div class="body">
+                    <span class="badge lost">LOST</span>
+                    <strong> ${item.title}</strong>
+                    <p>${item.description}</p>
+                    <div style="font-size:13px;color:#475569;">
+                        ${item.category} | ${item.location} | ${item.incidentDate}<br>
+                        Contact: ${item.userName} (${item.userPhone})
+                    </div>
+                </div>
+            </div>
+        `).join('')}</div>`;
+    }
+
+    async function loadLostItems() {
+        const loc = homeSearch.value.trim();
+        const url = loc ? `/api/items?type=LOST&location=${encodeURIComponent(loc)}` : '/api/items?type=LOST';
+        const res = await fetch(url);
+        const data = await res.json();
+        render(data);
+    }
+
+    homeSearch.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') loadLostItems();
+    });
+
+    loadLostItems();
+</script>
+</body>
+</html>
